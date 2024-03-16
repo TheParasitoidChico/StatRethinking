@@ -1,0 +1,75 @@
+##Chapter 7-2nd Edition----------------------------------
+
+install.packages("rethinking", 
+                 repos=c(cran="https://cloud.r-project.org",
+                         rethinking="http://xcelab.net/R"))
+
+
+#7H3-----------
+#Didn't want to deal with putting it in so I looked this up lol. 
+dat_island <- tibble("Island" = c("Island 1", "Island 2", "Island 3"),
+                     "Species A" = c(0.2, 0.8, 0.05), 
+                     "Species B" = c(0.2, 0.1, 0.15), 
+                     "Species C" = c(0.2, 0.05, 0.7), 
+                     "Species D" = c(0.2, 0.025, 0.05), 
+                     "Species E" = c(0.2, 0.025, 0.05))
+
+dat_island %>% 
+  knitr::kable()
+
+#First, compute the entropy of each island’s bird distribution.
+
+#Island 1:
+p1<- c(0.2, 0.2, 0.2, 0.2, 0.2)
+
+-sum( p1*log(p1) )
+#1.609
+
+#Island 2:
+p2<- c(0.8, 0.1, 0.05, 0.025, 0.025)
+
+-sum( p2*log(p2) )
+#0.743
+
+#Island 2:
+p3<- c(0.05, 0.15, 0.7, 0.05, 0.05)
+
+-sum( p3*log(p3) )
+#0.983
+
+#Uncertany is quite high for Island 1 and lowest for Island 2.
+
+#Second, use each island’s bird distribution to predict the other two.This means to compute
+#the K-L Divergence of each island from the others, treating each island as if it were a 
+#statistical model of the other islands. 
+
+# Average the proportions of Island 2 and 3
+(q <- apply(cbind(p2, p3), 1, mean))
+
+# Divergence of Island 1 from combined Islands 2 & 3
+(D_pq <- sum(p1 * log(p1 / q)))
+
+# Divergence of combined Islands 2 & 3 from Island 1
+(D_qp <- sum(q * log(q / p1)))
+
+output <- data.frame(
+  Approximated = D_pq,
+  Approximator = D_qp
+)
+# Target: Island 2
+q <- apply(cbind(p1, p3), 1, mean)
+D_pq <- sum(p2 * log(p2 / q))
+D_qp <- sum(q * log(q / p2))
+output <- rbind(output, c(D_pq, D_qp))
+# Target: Island 3
+q <- apply(cbind(p1, p2), 1, mean)
+D_pq <- sum(p3 * log(p3 / q))
+D_qp <- sum(q * log(q / p3))
+output <- rbind(output, c(D_pq, D_qp))
+# output
+rownames(output) <- c("Island 1", "Island 2", "Island 3")
+output
+
+#As it turns out, the divergence between a “safe bet” (i.e. Island 1 where all species are 
+#equally present) and other systems is much smaller than when comparing heavily skewed 
+#probability density distributions.
